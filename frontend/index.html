@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>DeepSeek Work</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="titlebar">
+  <span id="title">DeepSeek Work</span>
+  <span id="tb-buttons">
+    <button class="tb" id="btn-min" title="最小化">─</button>
+    <button class="tb tb-close" id="btn-close" title="关闭">✕</button>
+  </span>
+</div>
+<main>
+  <section class="card">
+    <h2>电脑信息</h2>
+    <div id="si-rows"></div>
+  </section>
+
+  <section class="card">
+    <h2>选择模型预设</h2>
+    <ul id="presets"></ul>
+    <button id="btn-add" class="ghost">＋ 添加新的 bat</button>
+  </section>
+
+  <section class="card">
+    <h2>DeepSeek Harness（3080）</h2>
+    <input id="harness-cmd" class="hidden" type="text" spellcheck="false" placeholder="DeepSeek Harness 启动命令（cmd /c 执行，可自定义）">
+    <div class="row">
+      <button id="btn-harness">启动 DeepSeek Harness</button>
+      <button id="btn-harness-custom" class="ghost">自定义启动 DeepSeek Harness</button>
+    </div>
+  </section>
+
+  <div class="row launch-row">
+    <!-- disabled 直接写在 HTML：首帧渲染即置灰（等 JS 异步取到预设列表前也不会先闪一下亮色），后续由 JS 同步选中状态 -->
+    <button id="btn-launch" disabled>一键启动 bat 和 DeepSeek Harness</button>
+    <button id="btn-bat-only" class="ghost" disabled>单独启动 bat</button>
+  </div>
+
+  <section class="card">
+    <h2>状态</h2>
+    <div id="status-text">空闲</div>
+    <div class="row">
+      <button id="btn-skip" class="ghost hidden">跳过等待，直接打开 DeepSeek Harness</button>
+      <button id="btn-stop" class="danger hidden">停止模型</button>
+    </div>
+  </section>
+
+  <button id="btn-quit">退出</button>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

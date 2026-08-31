@@ -1,8 +1,6 @@
 # DeepSeek Work
 
-![DeepSeek Work 主界面](docs/工具页面.png)
-
-![DeepSeek Work 工具页面 3](docs/工具页面3.png)
+![DeepSeek Work 主界面](docs/工具页面3.png)
 
 一个单文件的 Windows 桌面小工具：**管理本地大模型的启动** —— 点选模型预设、一键启动，程序自动把模型（llama.cpp）跑起来，就绪后用独立 Chrome 页面打开 DeepSeek Harness（Web 界面）。全程不用敲命令。
 
@@ -23,7 +21,7 @@
 
 ## 界面导览
 
-上方截图即主界面，各区域作用：
+上图即主界面，各区域作用：
 
 | 区域 | 说明 |
 |------|------|

@@ -1,4 +1,5 @@
 build/bin/
 *.exe
+*_test.go
 config.json
 .superpowers/

@@ -147,16 +147,86 @@ func (l *Launcher) StartModel(batPath string) error {
 	return nil
 }
 
-// StopModel 杀整棵模型进程树。
+// StopModel 停止本地模型：优先杀本工具启动的整棵进程树（bat 控制台 + llama-server）；
+// 未跟踪（应用重启后 modelProc 丢失）则回退按 ModelPort 杀监听进程树；都无 → 幂等 nil。
 func (l *Launcher) StopModel() error {
 	l.mu.Lock()
 	p := l.modelProc
 	l.modelProc = nil
 	l.mu.Unlock()
-	if p == nil {
-		return errors.New("没有运行中的模型进程")
+	if p != nil {
+		if err := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(p.Pid)).Run(); err == nil || !l.PortOpen(l.cfg.ModelPort) {
+			return nil // 整树已杀；或进程已自行退出且端口已释放
+		}
+	} else if !l.PortOpen(l.cfg.ModelPort) {
+		return nil // 没有运行中的模型
 	}
-	return exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(p.Pid)).Run()
+	return l.killPort(l.cfg.ModelPort)
+}
+
+// portPids 用 netstat -ano 找出监听指定端口的进程 PID 列表（去重；端口未监听 → 空列表）。
+// 本地地址取最后一个 ':' 之后与端口精确比对，兼容 0.0.0.0:port / [::]:port 等形态；
+// 不依赖 State 列文案（避免系统语言差异）；PID 恒为行尾字段（无 PID 的行填 "-"，Atoi 过滤掉）。
+func (l *Launcher) portPids(port int) ([]int, error) {
+	out, err := exec.Command("netstat", "-ano").Output()
+	if err != nil {
+		return nil, fmt.Errorf("netstat 查询端口 %d 失败: %w", port, err)
+	}
+	want := strconv.Itoa(port)
+	seen := map[int]bool{}
+	var pids []int
+	for _, line := range strings.Split(string(out), "\n") {
+		f := strings.Fields(line)
+		if len(f) < 4 {
+			continue
+		}
+		local := f[1]
+		idx := strings.LastIndex(local, ":")
+		if idx < 0 || local[idx+1:] != want {
+			continue
+		}
+		pid, err := strconv.Atoi(f[len(f)-1])
+		if err != nil || pid <= 0 {
+			continue
+		}
+		if !seen[pid] {
+			seen[pid] = true
+			pids = append(pids, pid)
+		}
+	}
+	return pids, nil
+}
+
+// killPort 杀掉监听 port 的所有进程树（taskkill /T /F）；端口空闲 → 幂等 nil。
+func (l *Launcher) killPort(port int) error {
+	pids, err := l.portPids(port)
+	if err != nil {
+		return err
+	}
+	if len(pids) == 0 {
+		return nil
+	}
+	var failed []int
+	for _, pid := range pids {
+		if err := exec.Command("taskkill", "/T", "/F", "/PID", strconv.Itoa(pid)).Run(); err != nil {
+			failed = append(failed, pid)
+		}
+	}
+	if len(failed) == len(pids) {
+		return fmt.Errorf("强制结束端口 %d 的进程失败（PID %v），可能进程已退出或权限不足", port, failed)
+	}
+	return nil
+}
+
+// StopHarness 停止 DeepSeek Harness：杀监听 HarnessPort 的进程树。
+// 按端口而非进程句柄定位：harness 可能由本工具启动，也可能是复用已有实例
+// （EnsureHarness 复用优先，不跟踪其进程句柄），按端口杀两种情况都覆盖；
+// 端口空闲 → 幂等 nil。
+func (l *Launcher) StopHarness() error {
+	if !l.PortOpen(l.cfg.HarnessPort) {
+		return nil
+	}
+	return l.killPort(l.cfg.HarnessPort)
 }
 
 // StartHarness 用传入的完整命令行（可自定义）隐藏窗口启动 harness，记住进程。

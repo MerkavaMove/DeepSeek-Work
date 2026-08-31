@@ -26,4 +26,10 @@ export function StartBatOnly(arg1:string):Promise<string>;
 
 export function StartModel(arg1:string):Promise<string>;
 
-export function StopModel():Promise<void>;
+export function Status():Promise<Record<string, boolean>>;
+
+export function StopAgent():Promise<void>;
+
+export function StopAll():Promise<void>;
+
+export function StopModelOnly():Promise<void>;

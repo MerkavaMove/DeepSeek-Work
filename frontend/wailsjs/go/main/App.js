@@ -50,6 +50,18 @@ export function StartModel(arg1) {
   return window['go']['main']['App']['StartModel'](arg1);
 }
 
-export function StopModel() {
-  return window['go']['main']['App']['StopModel']();
+export function Status() {
+  return window['go']['main']['App']['Status']();
+}
+
+export function StopAgent() {
+  return window['go']['main']['App']['StopAgent']();
+}
+
+export function StopAll() {
+  return window['go']['main']['App']['StopAll']();
+}
+
+export function StopModelOnly() {
+  return window['go']['main']['App']['StopModelOnly']();
 }

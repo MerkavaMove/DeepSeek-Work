@@ -45,7 +45,10 @@
     <div id="status-text">空闲</div>
     <div class="row">
       <button id="btn-skip" class="ghost hidden">跳过等待，直接打开 DeepSeek Harness</button>
-      <button id="btn-stop" class="danger hidden">停止模型</button>
+      <!-- 三个停止按钮由前端轮询 Status() 实时显隐：对应目标运行中 → 显示，已停止 → 隐藏 -->
+      <button id="btn-stop-all" class="danger hidden">一键停止</button>
+      <button id="btn-stop-model" class="danger hidden">停止模型</button>
+      <button id="btn-stop-agent" class="danger hidden">停止Agent</button>
     </div>
   </section>
 

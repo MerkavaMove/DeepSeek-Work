@@ -172,20 +172,68 @@ func (a *App) SkipWait() error {
 	return nil
 }
 
-// StopModel 停止模型（整棵进程树），并结束等待。
-func (a *App) StopModel() error {
+// Status 返回模型与 Agent（DeepSeek Harness）是否运行中，供前端轮询做按钮实时显隐。
+// 以端口监听为准（与停止逻辑同口径）：llama-server 监听 ModelPort，harness 监听 HarnessPort。
+func (a *App) Status() map[string]bool {
+	return map[string]bool{
+		"model": a.launcher.PortOpen(a.cfg.ModelPort),
+		"agent": a.launcher.PortOpen(a.cfg.HarnessPort),
+	}
+}
+
+// StopAll 一键停止：同时停止本地模型与 DeepSeek Harness（两者都关闭），并结束等待。
+// 两者独立处理：任一方停止失败不阻断另一方，全部结果合并回报。
+func (a *App) StopAll() error {
+	a.waiting.Store(false)
+	modelWasOpen := a.launcher.PortOpen(a.cfg.ModelPort)
+	harnessWasOpen := a.launcher.PortOpen(a.cfg.HarnessPort)
+	var errs []string
+	if err := a.launcher.StopModel(); err != nil {
+		errs = append(errs, "模型: "+err.Error())
+	}
+	if err := a.launcher.StopHarness(); err != nil {
+		errs = append(errs, "DeepSeek Harness: "+err.Error())
+	}
+	if len(errs) > 0 {
+		msg := "停止失败：" + strings.Join(errs, "；")
+		a.emit("error", msg, false, true)
+		return errors.New(strings.Join(errs, "；"))
+	}
+	if !modelWasOpen && !harnessWasOpen {
+		a.emit("idle", "没有运行中的模型或 DeepSeek Harness", false, false)
+		return nil
+	}
+	a.emit("idle", "模型与 DeepSeek Harness 已停止", false, false)
+	return nil
+}
+
+// StopModelOnly 仅停止本地模型（整棵进程树，未跟踪时回退按端口杀），并结束等待。
+func (a *App) StopModelOnly() error {
 	a.waiting.Store(false)
 	if err := a.launcher.StopModel(); err != nil {
+		a.emit("error", "停止模型失败: "+err.Error(), false, true)
 		return err
 	}
 	a.emit("idle", "模型已停止", false, false)
 	return nil
 }
 
-// QuitApp 退出；stopModel=true 时先停模型。
+// StopAgent 仅停止 DeepSeek Harness（Agent），并结束等待。
+func (a *App) StopAgent() error {
+	a.waiting.Store(false)
+	if err := a.launcher.StopHarness(); err != nil {
+		a.emit("error", "停止 DeepSeek Harness（Agent）失败: "+err.Error(), false, true)
+		return err
+	}
+	a.emit("idle", "DeepSeek Harness（Agent）已停止", false, false)
+	return nil
+}
+
+// QuitApp 退出；stopModel=true 时先停模型与 DeepSeek Harness。
 func (a *App) QuitApp(stopModel bool) error {
 	if stopModel {
 		_ = a.launcher.StopModel()
+		_ = a.launcher.StopHarness()
 	}
 	runtime.Quit(a.ctx)
 	return nil

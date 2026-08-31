@@ -16,7 +16,7 @@ function setStatus(stage, text, canSkip, canStop) {
   state.busy = stage === "starting";
   $("status-text").textContent = text;
   $("btn-skip").classList.toggle("hidden", !canSkip);
-  $("btn-stop").classList.toggle("hidden", !canStop);
+  // 注：三个停止按钮不再由事件驱动，改为下方轮询 Status() 按真实运行状态实时显隐。
 }
 window.runtime.EventsOn("status", (st) => {
   setStatus(st.stage, st.text, st.canSkip, st.canStop);
@@ -144,9 +144,26 @@ async function StartBatOnly(path) {
 $("btn-skip").onclick = async () => {
   try { await Go().SkipWait(); } catch (e) { alert(String(e)); }
 };
-$("btn-stop").onclick = async () => {
-  try { await Go().StopModel(); } catch (e) { alert(String(e)); }
+// ---- 停止按钮：实时检测模型 / Agent 运行状态，运行中显示、已停止隐藏 ----
+// 「一键停止」任一在运行即显示；「停止模型」模型在运行才显示；「停止Agent」Agent 在运行才显示。
+function updateStopButtons() {
+  Go().Status().then(st => {
+    $("btn-stop-model").classList.toggle("hidden", !st.model);
+    $("btn-stop-agent").classList.toggle("hidden", !st.agent);
+    $("btn-stop-all").classList.toggle("hidden", !(st.model || st.agent));
+  }).catch(() => { /* 后端调用失败保持当前显隐，下轮重试 */ });
+}
+$("btn-stop-all").onclick = async () => {
+  try { await Go().StopAll(); } catch (e) { alert(String(e)); }
 };
+$("btn-stop-model").onclick = async () => {
+  try { await Go().StopModelOnly(); } catch (e) { alert(String(e)); }
+};
+$("btn-stop-agent").onclick = async () => {
+  try { await Go().StopAgent(); } catch (e) { alert(String(e)); }
+};
+updateStopButtons(); // 首屏立即检测一次
+setInterval(updateStopButtons, 1500); // 每 1.5s 轮询端口运行状态
 // ---- 预设启动（Harness 卡片下方，作用于选中的预设行）----
 $("btn-launch").onclick = async () => {
   const p = selectedPreset();

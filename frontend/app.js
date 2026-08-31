@@ -10,8 +10,9 @@ $("btn-min").onclick = () => window.runtime.WindowMinimise();
 $("btn-close").onclick = doQuit;
 
 // ---- 全局状态（Task 9/10/11 扩展）----
-const state = { busy: false, waiting: false };
+const state = { stage: "idle", busy: false, waiting: false };
 function setStatus(stage, text, canSkip, canStop) {
+  state.stage = stage;
   state.waiting = stage === "starting";
   state.busy = stage === "starting";
   $("status-text").textContent = text;
@@ -148,9 +149,19 @@ $("btn-skip").onclick = async () => {
 // 「一键停止」任一在运行即显示；「停止模型」模型在运行才显示；「停止Agent」Agent 在运行才显示。
 function updateStopButtons() {
   Go().Status().then(st => {
-    $("btn-stop-model").classList.toggle("hidden", !st.model);
-    $("btn-stop-agent").classList.toggle("hidden", !st.agent);
-    $("btn-stop-all").classList.toggle("hidden", !(st.model || st.agent));
+    const vis = DSWDecisions.stopButtonVisibility(st);
+    $("btn-stop-model").classList.toggle("hidden", !vis.model);
+    $("btn-stop-agent").classList.toggle("hidden", !vis.agent);
+    $("btn-stop-all").classList.toggle("hidden", !vis.all);
+    // Harness 运行中 → 「启动」「自定义启动」两按钮置灰不可点
+    const disabled = DSWDecisions.harnessButtonsDisabled(st);
+    $("btn-harness").disabled = disabled;
+    $("btn-harness-custom").disabled = disabled;
+    // 无活动流程时状态栏反映运行状态：任一在运行 → 已运行；都停 → 空闲
+    // （starting/error/timeout 保留各自的实时文本，不被覆盖）
+    if (state.stage === "idle" || state.stage === "ready") {
+      $("status-text").textContent = DSWDecisions.idleStatusText(st);
+    }
   }).catch(() => { /* 后端调用失败保持当前显隐，下轮重试 */ });
 }
 $("btn-stop-all").onclick = async () => {

@@ -1,5 +1,6 @@
 build/bin/
 *.exe
 *_test.go
+*.test.js
 config.json
 .superpowers/

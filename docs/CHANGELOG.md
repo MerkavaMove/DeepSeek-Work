@@ -2,6 +2,13 @@
 
 按版本倒序。更细粒度可看 `git log`。
 
+## v1.0.19（2026-08-31）
+
+- **Harness 按钮实时置灰**：DeepSeek Harness 运行中时「启动 DeepSeek Harness」「自定义启动 DeepSeek Harness」均置灰且不可点击，停止后 1.5 秒内自动恢复。
+- **状态栏「已运行/空闲」**：无启动流程时，模型或 Harness 任一在运行显示「已运行」，全部停止显示「空闲」（1.5 秒轮询；启动进度/错误/超时文本保留不被覆盖）。
+- **前端决策层**：新增 `frontend/decisions.js` 纯决策函数（UMD：浏览器 `self.DSWDecisions` / node `module.exports`）与 `frontend/decisions.test.js` 自测（`node frontend/decisions.test.js`，9 例全绿）；停止按钮显隐与 Harness 按钮禁用逻辑统一到单一出处。
+- README 新增工具页面截图（`docs/工具页面3.png`）。
+
 ## v1.0.18（2026-08-31）
 
 - 停止重构（修复「停止模型」只停本地模型、DeepSeek Harness 未停的问题）：原按钮改名「**一键停止**」，同时停掉模型与 Harness；新增「停止模型」（只停模型）与「停止Agent」（只停 Harness）两个按钮。
